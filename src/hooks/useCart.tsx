@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { Product, Stock } from '../types';
@@ -32,6 +32,20 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
     return [];
   });
 
+  const prevCartRef = useRef<Product[]>();
+
+  useEffect(() => {
+    prevCartRef.current = cart;
+  })
+  
+  const cartPreviousValue = prevCartRef.current ?? cart;
+
+  useEffect(() => {
+    if ((cartPreviousValue !== cart)) {
+      localStorage.setItem('@RocketShoes:cart', JSON.stringify(cart))
+    }
+  }, [cart, cartPreviousValue]);
+
   const addProduct = async (productId: number) => {
     try {
       const updatedCart = [...cart]; /* here we are respecting the imutability law of react */
@@ -62,9 +76,8 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
         updatedCart.push(newProduct);
       }
-      setCart(updatedCart)
-      localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCart));
 
+      setCart(updatedCart)
     } catch {
       toast.error('Erro na adição do produto');
     }
@@ -72,13 +85,12 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
 
   const removeProduct = (productId: number) => {
     try {
-      const updatedCartRm = [...cart]; /* estamos passando o conteúdo existente para a variavel preservando a imutabilidade */
-      const productExistId = updatedCartRm.findIndex(product => product.id === productId);
+      const updatedCart = [...cart]; /* estamos passando o conteúdo existente para a variavel preservando a imutabilidade */
+      const productExistId = updatedCart.findIndex(product => product.id === productId);
       
       if (productExistId >= 0) {
-        updatedCartRm.splice(productExistId, 1);
-        setCart(updatedCartRm)
-        localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCartRm));
+        updatedCart.splice(productExistId, 1);
+        setCart(updatedCart)
       } else {
         throw Error();
       }
@@ -103,13 +115,12 @@ export function CartProvider({ children }: CartProviderProps): JSX.Element {
         return;
       }
 
-      const updatedCartUp = [...cart]
-      const productExist = updatedCartUp.find(product => product.id === productId);
+      const updatedCart = [...cart]
+      const productExist = updatedCart.find(product => product.id === productId);
 
       if (productExist) {
           productExist.amount = amount
-          setCart(updatedCartUp)
-          localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCartUp));
+          setCart(updatedCart);
       } else {
         throw Error();
       }
