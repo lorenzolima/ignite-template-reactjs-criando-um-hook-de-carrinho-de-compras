@@ -23,39 +23,98 @@ const CartContext = createContext<CartContextData>({} as CartContextData);
 
 export function CartProvider({ children }: CartProviderProps): JSX.Element {
   const [cart, setCart] = useState<Product[]>(() => {
-    // const storagedCart = Buscar dados do localStorage
+    const storagedCart = localStorage.getItem('@RocketShoes:cart');
 
-    // if (storagedCart) {
-    //   return JSON.parse(storagedCart);
-    // }
+    if (storagedCart) {
+      return JSON.parse(storagedCart);
+    }
 
     return [];
   });
 
   const addProduct = async (productId: number) => {
     try {
-      // TODO
+      const updatedCart = [...cart]; /* here we are respecting the imutability law of react */
+
+      // This function below will retorn false or true
+      const productExists = updatedCart.find(product => product.id === productId);
+      const stockItem = await api.get(`/stock/${productId}`)
+      const amountStockItem =  stockItem.data.amount;
+      const cartItemAmount = (productExists) ? productExists.amount : 0;
+      const addCartItemAmount = cartItemAmount + 1
+
+      if (addCartItemAmount > amountStockItem) {
+        toast.error('Quantidade solicitada fora de estoque');
+
+        return;
+      }
+
+      if (productExists) {
+        productExists.amount = addCartItemAmount;
+      }
+      else {
+        const product = await api.get(`/products/${productId}`)
+
+        // We are adding to the cart the new amount, because when we bring the product from the server it dont have the variable 'amount'
+        const newProduct = {
+          ...product.data, amount: 1
+        }
+
+        updatedCart.push(newProduct);
+      }
+      setCart(updatedCart)
+      localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCart));
+
     } catch {
-      // TODO
+      toast.error('Erro na adição do produto');
     }
   };
 
   const removeProduct = (productId: number) => {
     try {
-      // TODO
+      const updatedCartRm = [...cart]; /* estamos passando o conteúdo existente para a variavel preservando a imutabilidade */
+      const productExistId = updatedCartRm.findIndex(product => product.id === productId);
+      
+      if (productExistId >= 0) {
+        updatedCartRm.splice(productExistId, 1);
+        setCart(updatedCartRm)
+        localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCartRm));
+      } else {
+        throw Error();
+      }
     } catch {
-      // TODO
+      toast.error('Erro na remoção do produto');
     }
   };
 
   const updateProductAmount = async ({
     productId,
-    amount,
-  }: UpdateProductAmount) => {
+    amount
+    }: UpdateProductAmount) => {
     try {
-      // TODO
+      if (amount <= 0) {
+        return;
+      }
+      const resStock = await api.get(`/stock/${productId}`)
+      const stockAmount = resStock.data.amount
+
+      if (amount > stockAmount) {
+        toast.error('Quantidade solicitada fora de estoque');
+        return;
+      }
+
+      const updatedCartUp = [...cart]
+      const productExist = updatedCartUp.find(product => product.id === productId);
+
+      if (productExist) {
+          productExist.amount = amount
+          setCart(updatedCartUp)
+          localStorage.setItem('@RocketShoes:cart', JSON.stringify(updatedCartUp));
+      } else {
+        throw Error();
+      }
     } catch {
-      // TODO
+      toast.error('Erro na alteração de quantidade do produto')
     }
   };
 

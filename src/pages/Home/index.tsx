@@ -22,44 +22,58 @@ interface CartItemsAmount {
 }
 
 const Home = (): JSX.Element => {
-  // const [products, setProducts] = useState<ProductFormatted[]>([]);
-  // const { addProduct, cart } = useCart();
+  const [products, setProducts] = useState<ProductFormatted[]>([]);
+  const { addProduct, cart } = useCart();
 
-  // const cartItemsAmount = cart.reduce((sumAmount, product) => {
-  //   // TODO
-  // }, {} as CartItemsAmount)
+  
+  const cartItemsAmount = cart.reduce((sumAmount, product) => {
+    sumAmount[product.id] = product.amount
+
+    return sumAmount;
+  }, {} as CartItemsAmount)
 
   useEffect(() => {
     async function loadProducts() {
-      // TODO
+      const res = await api.get<Product[]>('products')
+
+      const allProducts = res.data.map(product => ({
+        ...product,
+        priceFormatted: formatPrice(product.price)
+      }))
+
+      setProducts(allProducts);
     }
 
     loadProducts();
   }, []);
 
+  // Below we only pass the id to the function that will make the process BASED ON THE BUSINESS Rule, inside the 'hook'
   function handleAddProduct(id: number) {
-    // TODO
+    addProduct(id);
   }
 
   return (
+    // Here we need to make a map for each product we are loading and create the html return (USE THE YOUR LOGIC... YOUR ARE STRONG, SMART!)
     <ProductList>
-      <li>
-        <img src="https://rocketseat-cdn.s3-sa-east-1.amazonaws.com/modulo-redux/tenis1.jpg" alt="Tênis de Caminhada Leve Confortável" />
-        <strong>Tênis de Caminhada Leve Confortável</strong>
-        <span>R$ 179,90</span>
+      {products.map(product => (
+        <li key={product.id}> {/* COMMETS: The react request us to use keys to identify each object */}
+        <img src={product.image} alt={product.title} />
+        <strong>{product.title}</strong>
+        <span>{product.priceFormatted}</span>
         <button
           type="button"
           data-testid="add-product-button"
-        // onClick={() => handleAddProduct(product.id)}
+          onClick={() => handleAddProduct(product.id)}
         >
           <div data-testid="cart-product-quantity">
             <MdAddShoppingCart size={16} color="#FFF" />
-            {/* {cartItemsAmount[product.id] || 0} */} 2
+            {cartItemsAmount[product.id] || 0}
           </div>
 
           <span>ADICIONAR AO CARRINHO</span>
         </button>
       </li>
+      ))}
     </ProductList>
   );
 };
